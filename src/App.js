@@ -1,40 +1,74 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from "react";
 
-import MoviesList from './components/MoviesList';
-import './App.css';
+import MoviesList from "./components/MoviesList";
+import AddMovie from "./components/AddMovie";
+
+import "./App.css";
 
 function App() {
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchMoviesHandler = async () => {
+  async function addMovieHandler(movie) {
+    console.log(movie);
+    const res = await fetch(
+      "https://react-http-8333c-default-rtdb.firebaseio.com/movies.json",
+      {
+        method: "POST",
+        body: JSON.stringify(movie),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const data = await res.json();
+  }
+
+  const fetchMoviesHandler = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const res = await fetch('https://swapi.py4e.com/api/films/');
+      const res = await fetch(
+        "https://react-http-8333c-default-rtdb.firebaseio.com/movies.json"
+      );
 
       if (!res.ok) {
-        throw new Error('Something went wrong! ');
+        throw new Error("Something went wrong! ");
       }
 
       const data = await res.json();
 
-      const tranformedMovies = data.results.map((movieData) => ({
-        id: movieData.episode_id,
-        title: movieData.title,
-        openingText: movieData.opening_crawl,
-        releaseDate: movieData.release_date,
-      }));
+      let loadedMovies = [];
 
-      setMovies(tranformedMovies);
+      for (const key in data) {
+        loadedMovies.push({
+          id: data[key],
+          openingText: data[key].openingText,
+          releaseDate: data[key].releaseDate,
+          title: data[key].title,
+        });
+      }
+
+      // const tranformedMovies = data.results.map((movieData) => ({
+      //   id: movieData.episode_id,
+      //   title: movieData.title,
+      //   openingText: movieData.opening_crawl,
+      //   releaseDate: movieData.release_date,
+      // }));
+
+      setMovies(loadedMovies);
     } catch (error) {
       setError(error.message);
     }
 
     setIsLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchMoviesHandler();
+  }, [fetchMoviesHandler]);
 
   let content = <p>Found no movies.</p>;
 
@@ -52,6 +86,9 @@ function App() {
 
   return (
     <React.Fragment>
+      <section>
+        <AddMovie onAddMovie={addMovieHandler} />
+      </section>
       <section>
         <button onClick={fetchMoviesHandler}>Fetch Movies</button>
       </section>
